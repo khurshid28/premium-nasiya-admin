@@ -270,8 +270,9 @@ Agar filiallar yoki arizalar bo'sh `[]` bo'lib kelayotgan bo'lsa:
 # .env faylini yarating
 cp .env.example .env
 
-# API base URL'ni to'g'ri kiriting
-REACT_APP_API_BASE=https://api.premiumnasiya.uz/api/v1
+# API base URL'ni to'g'ri kiriting (o'z backend URL'ingizni yozing)
+REACT_APP_API_BASE=https://your-backend-url.com/api/v1
+# Misol: https://api.premiumnasiya.uz/api/v1
 ```
 
 2. **Token mavjudligini tekshiring:**
@@ -286,8 +287,11 @@ localStorage.getItem('token')
    - Backend `Access-Control-Allow-Origin` headerini yuborayotganini tasdiqlang
 
 4. **API endpoint'larni tekshiring:**
-   - Frontend: `/fillial/all`, `/app/all`, `/user/all` so'raydi
-   - Backend ham shu endpoint'larni qo'llab-quvvatlashi kerak
+   - Frontend quyidagi nisbiy path'larni so'raydi (API_BASE URL'ga qo'shiladi):
+     - `/fillial/all` → `${API_BASE}/fillial/all`
+     - `/app/all` → `${API_BASE}/app/all`
+     - `/user/all` → `${API_BASE}/user/all`
+   - Backend ham aynan shu endpoint'larni qo'llab-quvvatlashi kerak
 
 5. **Network tab'da xatoliklarni ko'ring:**
    - Browser DevTools → Network → XHR
@@ -298,10 +302,10 @@ localStorage.getItem('token')
 
 6. **Console log'larni tekshiring:**
 ```javascript
-// Browser console'da quyidagilarni ko'ring:
+// Browser console'da quyidagilarni ko'ring (F12 tugmasini bosing):
 "Fetching fillials from API..."
-"API Base URL: ..."
-"Received X fillials"
+"API Base URL: https://api.premiumnasiya.uz/api/v1"
+"Received 12 fillials"  // Agar 0 bo'lsa, backend bo'sh data qaytarmoqda
 ```
 
 ### Backend response formati
