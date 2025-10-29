@@ -27,6 +27,14 @@ interface ApiError extends Error {
   originalError?: Error;
 }
 
+// Helper function to check if an error is a network error
+function isNetworkError(error: unknown): boolean {
+  return error instanceof TypeError && 
+    (error.message.includes('Failed to fetch') || 
+     error.message.includes('NetworkError') ||
+     error.message.includes('Network request failed'));
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   const text = await res.text();
   const contentType = res.headers.get("content-type") || "";
@@ -62,13 +70,8 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries = 
     } catch (error) {
       lastError = error as Error;
       
-      // Check if this is a network error (TypeError from fetch API)
-      const isNetworkError = error instanceof TypeError && 
-        (error.message.includes('Failed to fetch') || 
-         error.message.includes('NetworkError') ||
-         error.message.includes('Network request failed'));
-      
-      if (isNetworkError && i < retries) {
+      // Check if this is a network error that should be retried
+      if (isNetworkError(error) && i < retries) {
         // Network error - retry with exponential backoff
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
         continue;
@@ -83,7 +86,7 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries = 
   const err = new Error(
     `Server aloqasi o'rnatilmadi. Iltimos, internetingizni tekshiring yoki keyinroq qayta urinib ko'ring. ${lastError?.message || ''}`
   ) as ApiError;
-  err.originalError = lastError || undefined;
+  err.originalError = lastError;
   throw err;
 }
 
