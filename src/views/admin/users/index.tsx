@@ -34,7 +34,7 @@ const Users = (): JSX.Element => {
   
   // Client-side pagination
   const [page, setPage] = React.useState<number>(1);
-  const [pageSize, setPageSize] = React.useState<number>(10);
+  const [pageSize, setPageSize] = React.useState<number>(5);
   
   const [selected, setSelected] = React.useState<User | null>(null);
   const [open, setOpen] = React.useState(false);

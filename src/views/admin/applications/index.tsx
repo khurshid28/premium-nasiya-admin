@@ -56,7 +56,7 @@ const Applications = (): JSX.Element => {
   
   // Client-side pagination state
   const [page, setPage] = React.useState<number>(1);
-  const [pageSize, setPageSize] = React.useState<number>(10);
+  const [pageSize, setPageSize] = React.useState<number>(5);
   
   const SLIDER_MIN = 0;
   const SLIDER_MAX = 50000000; // 50 million UZS
@@ -65,9 +65,10 @@ const Applications = (): JSX.Element => {
   const statuses = React.useMemo(() => {
     return [
       { value: "all", label: "Barcha holatlar" },
-      { value: "APPROVED", label: "Tasdiqlangan" },
-      { value: "REJECTED", label: "Rad etilgan" },
+      { value: "FINISHED", label: "Tugatildi" },
       { value: "PENDING", label: "Kutilmoqda" },
+      { value: "REJECTED", label: "Rad qilindi" },
+      { value: "APPROVED", label: "Tasdiqlangan" },
       { value: "CANCELED", label: "Bekor qilingan" }
     ];
   }, []);
