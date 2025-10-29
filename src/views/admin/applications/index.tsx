@@ -6,6 +6,7 @@ import DetailModal from "components/modal/DetailModalNew";
 import AvatarName from "components/AvatarName";
 import DateRangePicker from "components/DateRangePicker";
 import CustomSelect from "components/dropdown/CustomSelect";
+import Toast from "components/toast/Toast";
 import { formatPhone, formatMoney, appStatusBadge, formatDateNoSeconds, formatDate24Hour } from "lib/formatters";
 import { exportSingleTable } from "lib/exportExcel";
 
@@ -53,6 +54,9 @@ const Applications = (): JSX.Element => {
   const [endDate, setEndDate] = React.useState<string>("");
   const [selected, setSelected] = React.useState<Application | null>(null);
   const [open, setOpen] = React.useState(false);
+  const [toastOpen, setToastOpen] = React.useState(false);
+  const [toastMessage, setToastMessage] = React.useState("");
+  const [toastType, setToastType] = React.useState<"main" | "success" | "error">("main");
   
   // Client-side pagination state
   const [page, setPage] = React.useState<number>(1);
@@ -83,10 +87,19 @@ const Applications = (): JSX.Element => {
   React.useEffect(() => {
     let mounted = true;
     console.log('Fetching applications from API...');
+    console.log('API Base URL:', process.env.REACT_APP_API_BASE || 'http://localhost:3333/api');
     api.listApplications({}).then((res) => {
       if (!mounted) return;
       console.log('Applications response:', res);
-      setApplications(res?.items || []);
+      const items = res?.items || [];
+      console.log(`Received ${items.length} applications`);
+      setApplications(items);
+      
+      if (items.length === 0) {
+        setToastType("main");
+        setToastMessage("Arizalar topilmadi. Backend bilan aloqa tekshiring.");
+        setToastOpen(true);
+      }
     }).catch((err) => {
       if (!mounted) return;
       console.error("Error fetching applications:", err);
@@ -96,12 +109,17 @@ const Applications = (): JSX.Element => {
         body: err.body
       });
       setApplications([]);
+      setToastType("error");
+      setToastMessage(`Xatolik: ${err.message || "Arizalarni yuklashda muammo"}`);
+      setToastOpen(true);
     });
     console.log('Fetching fillials from API...');
     api.listFillials({}).then((res) => {
       if (!mounted) return;
       console.log('Fillials for applications:', res);
-      setFillialsList(res?.items || []);
+      const items = res?.items || [];
+      console.log(`Received ${items.length} fillials for filter`);
+      setFillialsList(items);
     }).catch((err) => {
       if (!mounted) return;
       console.error("Error fetching fillials:", err);
@@ -585,6 +603,8 @@ const Applications = (): JSX.Element => {
         <div className="text-sm text-gray-600 dark:text-gray-400">{`${total} dan ${pageData.length} ta ko'rsatilmoqda`}</div>
         <Pagination page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} />
       </div>
+      
+      <Toast message={toastMessage} isOpen={toastOpen} onClose={() => setToastOpen(false)} type={toastType} />
     </div>
   );
 };

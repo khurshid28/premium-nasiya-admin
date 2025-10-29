@@ -157,11 +157,20 @@ const Fillials = (): JSX.Element => {
   React.useEffect(() => {
     let mounted = true;
     console.log('Fetching fillials from API...');
+    console.log('API Base URL:', process.env.REACT_APP_API_BASE || 'http://localhost:3333/api');
     api.listFillials({})
       .then((res) => {
         if (!mounted) return;
         console.log('Fillials response:', res);
-        setData(res?.items || []);
+        const items = res?.items || [];
+        console.log(`Received ${items.length} fillials`);
+        setData(items);
+        
+        if (items.length === 0) {
+          setToastType("main");
+          setToastMessage("Ma'lumotlar topilmadi. Backend bilan aloqa tekshiring.");
+          setToastOpen(true);
+        }
       })
       .catch((err) => {
         if (!mounted) return;
@@ -172,6 +181,9 @@ const Fillials = (): JSX.Element => {
           body: err.body
         });
         setData([]);
+        setToastType("error");
+        setToastMessage(`Xatolik: ${err.message || "Filiallarni yuklashda muammo"}`);
+        setToastOpen(true);
       });
     return () => {
       mounted = false;
