@@ -258,6 +258,88 @@ MIT License - [LICENSE.md](LICENSE.md)
 
 ---
 
+
+## 🔧 Muammolarni Hal Qilish (Troubleshooting)
+
+### Backend dan bo'sh ma'lumotlar kelsa
+
+Agar filiallar yoki arizalar bo'sh `[]` bo'lib kelayotgan bo'lsa:
+
+1. **`.env` faylini tekshiring:**
+```bash
+# .env faylini yarating
+cp .env.example .env
+
+# API base URL'ni to'g'ri kiriting (o'z backend URL'ingizni yozing)
+REACT_APP_API_BASE=https://your-backend-url.com/api/v1
+# Misol: https://api.premiumnasiya.uz/api/v1
+```
+
+2. **Token mavjudligini tekshiring:**
+```bash
+# Browser console'da
+localStorage.getItem('token')
+# Agar null bo'lsa, qayta login qiling
+```
+
+3. **CORS muammosi bo'lsa:**
+   - Backend serverda CORS sozlamalari to'g'ri ekanligini tekshiring
+   - Backend `Access-Control-Allow-Origin` headerini yuborayotganini tasdiqlang
+
+4. **API endpoint'larni tekshiring:**
+   - Frontend quyidagi nisbiy path'larni so'raydi (API_BASE URL'ga qo'shiladi):
+     - `/fillial/all` → `${API_BASE}/fillial/all`
+     - `/app/all` → `${API_BASE}/app/all`
+     - `/user/all` → `${API_BASE}/user/all`
+   - Backend ham aynan shu endpoint'larni qo'llab-quvvatlashi kerak
+
+5. **Network tab'da xatoliklarni ko'ring:**
+   - Browser DevTools → Network → XHR
+   - 401 (Unauthorized): Token muammosi
+   - 403 (Forbidden): Huquq yo'q
+   - 404 (Not Found): Endpoint topilmadi
+   - 500 (Server Error): Backend xatoligi
+
+6. **Console log'larni tekshiring:**
+```javascript
+// Browser console'da quyidagilarni ko'ring (F12 tugmasini bosing):
+"Fetching fillials from API..."
+"API Base URL: https://api.premiumnasiya.uz/api/v1"
+"Received 12 fillials"  // Agar 0 bo'lsa, backend bo'sh data qaytarmoqda
+```
+
+### Backend response formati
+
+Frontend ikkita formatni qo'llab-quvvatlaydi:
+
+**Format 1: Paginated (tavsiya etiladi)**
+```json
+{
+  "items": [...],
+  "total": 100,
+  "page": 1,
+  "pageSize": 10
+}
+```
+
+**Format 2: Array (oddiy)**
+```json
+[...]
+```
+
+Backend ikkala formatdan birini qaytarishi mumkin, frontend avtomatik aniqlaydi.
+
+### Authentication
+
+Token localStorage'da saqlanadi va har bir API so'rovga qo'shiladi:
+```
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+
+Agar 401 xatoligi ko'rsatilsa, logout qilib qayta login qiling.
+
+---
+
 ## 👥 Muallif
 
 **Khurshid**

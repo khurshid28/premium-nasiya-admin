@@ -1,4 +1,4 @@
-﻿// Auto-generated frontend types (based on your Prisma models)
+// Auto-generated frontend types (based on your Prisma models)
 // Adjust fields if your API uses different shapes or naming.
 
 export type Role =

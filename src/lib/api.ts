@@ -164,7 +164,19 @@ export async function listUsers(opts?: {
       ...authHeaders() 
     } 
   });
-  return handleResponse<Paginated<User>>(res);
+  const data = await handleResponse<any>(res);
+  
+  // Handle both array response and paginated response
+  if (Array.isArray(data)) {
+    return {
+      items: data,
+      total: data.length,
+      page: opts?.page || 1,
+      pageSize: opts?.pageSize || 10
+    };
+  }
+  
+  return data as Paginated<User>;
 }
 
 export async function getUser(id: number): Promise<User> {
@@ -213,7 +225,19 @@ export async function listFillials(opts?: { page?: number; pageSize?: number; se
       ...authHeaders() 
     } 
   });
-  return handleResponse<Paginated<Fillial>>(res);
+  const data = await handleResponse<any>(res);
+  
+  // Handle both array response and paginated response
+  if (Array.isArray(data)) {
+    return {
+      items: data,
+      total: data.length,
+      page: opts?.page || 1,
+      pageSize: opts?.pageSize || 10
+    };
+  }
+  
+  return data as Paginated<Fillial>;
 }
 
 export async function getFillial(id: number): Promise<Fillial> {
@@ -262,7 +286,19 @@ export async function listZayavkalar(opts?: { page?: number; pageSize?: number; 
       ...authHeaders() 
     } 
   });
-  return handleResponse<Paginated<Zayavka>>(res);
+  const data = await handleResponse<any>(res);
+  
+  // Handle both array response and paginated response
+  if (Array.isArray(data)) {
+    return {
+      items: data,
+      total: data.length,
+      page: opts?.page || 1,
+      pageSize: opts?.pageSize || 10
+    };
+  }
+  
+  return data as Paginated<Zayavka>;
 }
 
 export async function getZayavka(id: number): Promise<Zayavka> {
