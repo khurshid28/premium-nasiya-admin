@@ -11,6 +11,7 @@ import {
 } from "react-icons/io";
 import api from "lib/api";
 import DetailModal from "components/modal/DetailModalNew";
+import { appStatusBadge } from "lib/formatters";
 
 const Navbar = (props: {
   onOpenSidenav: () => void;
@@ -43,38 +44,7 @@ const Navbar = (props: {
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
   const searchBoxRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Status mapping - inglizcha status larni uzbekchaga
-  const getStatusText = (status: string) => {
-    const statusMap: { [key: string]: string } = {
-      'ACTIVE': 'Faol',
-      'PENDING': 'Kutilmoqda', 
-      'APPROVED': 'Tasdiqlangan',
-      'REJECTED': 'Rad qilingan',
-      'COMPLETED': 'Tugatilgan',
-      'CANCELLED': 'Bekor qilingan',
-      'CANCELED_BY_SCORING': 'Rad qilingan',
-      'CANCELED_BY_CLIENT': 'Rad qilingan',
-      'CANCELED_BY_DAILY': 'Rad qilingan',
-      'LIMIT': 'Limit',
-      'DRAFT': 'Qoralama'
-    };
-    return statusMap[status?.toUpperCase()] || status;
-  };
 
-  // Status color mapping
-  const getStatusColor = (status: string) => {
-    const statusLower = status?.toLowerCase();
-    if (statusLower === 'active' || statusLower === 'approved' || statusLower === 'completed') {
-      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-    } else if (statusLower === 'pending' || statusLower === 'draft') {
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-    } else if (statusLower === 'rejected' || statusLower === 'cancelled' || statusLower.includes('canceled') || statusLower.includes('scoring')) {
-      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-    } else if (statusLower === 'limit') {
-      return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
-    }
-    return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
-  };
 
   // Highlight search term in text
   const highlightText = (text: string, searchTerm: string) => {
@@ -156,7 +126,7 @@ const Navbar = (props: {
               a.status?.toLowerCase() || '',
               a.passport?.toLowerCase() || '',
               // Uzbekcha status nomlari bilan ham search qilish
-              getStatusText(a.status || '')?.toLowerCase() || ''
+              appStatusBadge(a.status || '').label?.toLowerCase() || ''
             ];
             return searchFields.some(field => field.includes(searchLower));
           })
@@ -165,8 +135,8 @@ const Navbar = (props: {
             list.push({
               type: "application",
               id: a.id,
-              title: `${a.fullname ?? "-"} • #${a.id}`,
-              subtitle: `${a.phone ?? ""} ${a.status ? " • " + getStatusText(a.status) : ""}`.trim(),
+              title: `${a.fullname ?? "-"}`,
+              subtitle: `${a.phone ?? ""} ${a.status ? " • " + appStatusBadge(a.status).label : ""}`.trim(),
               raw: a,
             })
           );
@@ -341,8 +311,8 @@ const Navbar = (props: {
                               </span>
                             )}
                             {r.type === "application" && r.raw?.status && (
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getStatusColor(r.raw.status)}`}>
-                                {getStatusText(r.raw.status)}
+                              <span className={appStatusBadge(r.raw.status).className}>
+                                {appStatusBadge(r.raw.status).label}
                               </span>
                             )}
                             {r.type === "fillial" && r.raw?.region && (

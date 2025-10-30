@@ -6,8 +6,9 @@ import DetailModal from "components/modal/DetailModalNew";
 import AvatarName from "components/AvatarName";
 import DateRangePicker from "components/DateRangePicker";
 import CustomSelect from "components/dropdown/CustomSelect";
-import { formatPhone, formatMoney, appStatusBadge, formatDateNoSeconds, formatDate24Hour } from "lib/formatters";
+import { formatPhone, formatMoney, formatMoneyWithUZS, appStatusBadge, formatDateNoSeconds, formatDate24Hour, isApproved } from "lib/formatters";
 import { exportSingleTable } from "lib/exportExcel";
+import Toast from "components/toast/ToastNew";
 
 // Mapped to your Prisma `Zayavka` model (named Zayavka in Prisma). Adjust names if needed.
 type Application = {
@@ -57,6 +58,10 @@ const Applications = (): JSX.Element => {
   // Client-side pagination state
   const [page, setPage] = React.useState<number>(1);
   const [pageSize, setPageSize] = React.useState<number>(10);
+  
+  // Toast state
+  const [toastMessage, setToastMessage] = React.useState<string>("");
+  const [toastOpen, setToastOpen] = React.useState<boolean>(false);
   
   const SLIDER_MIN = 0;
   const SLIDER_MAX = 50000000; // 50 million UZS
@@ -225,11 +230,11 @@ const Applications = (): JSX.Element => {
         </div>
         <div className="rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-navy-800 p-3">
           <div className="text-sm text-gray-500 dark:text-gray-400">Tasdiqlangan jami</div>
-          <div className="text-lg font-semibold dark:text-white">{formatMoney(stats.approvedAmount)}</div>
+          <div className="text-lg font-semibold dark:text-white">{formatMoneyWithUZS(stats.approvedAmount)}</div>
         </div>
         <div className="rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-navy-800 p-3">
           <div className="text-sm text-gray-500 dark:text-gray-400">To'landi / To'lanmadi (tasdiqlangan)</div>
-          <div className="text-lg font-semibold dark:text-white">{formatMoney(stats.approvedPaidAmount)} / {formatMoney(stats.approvedUnpaidAmount)}</div>
+          <div className="text-lg font-semibold dark:text-white">{formatMoneyWithUZS(stats.approvedPaidAmount)} / {formatMoneyWithUZS(stats.approvedUnpaidAmount)}</div>
         </div>
       </div>
       <div className="flex items-center justify-start">
@@ -378,7 +383,7 @@ const Applications = (): JSX.Element => {
             )}
           />
           <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-            {formatMoney(amountRange[0])} — {formatMoney(amountRange[1])}
+            {formatMoneyWithUZS(amountRange[0])} — {formatMoneyWithUZS(amountRange[1])}
           </div>
         </div>
       </div>
@@ -391,7 +396,7 @@ const Applications = (): JSX.Element => {
                 <>
                   <th className="px-4 py-3">Tovarlar</th>
                   <th className="px-4 py-3">To'lov summasi</th>
-                  <th className="px-4 py-3">Hujjat</th>
+                  <th className="px-4 py-3">Grafik</th>
                   <th className="px-4 py-3">Muddati</th>
                   <th className="px-4 py-3">Yaratildi</th>
                 </>
@@ -399,14 +404,13 @@ const Applications = (): JSX.Element => {
                 <>
                   <th className="px-4 py-3 text-center">ID</th>
                   <th className="px-4 py-3">Ariza beruvchi</th>
-                  <th className="px-4 py-3 text-center">Telefon</th>
-                  <th className="px-4 py-3 text-center">Mahsulotlar</th>
-                  <th className="px-4 py-3 text-center">Tovarlar</th>
-                  <th className="px-4 py-3 text-center">To'lov summasi</th>
+                  <th className="px-4 py-3 text-center min-w-[130px]">Telefon</th>
+                  <th className="px-4 py-3 text-center min-w-[140px]">Mahsulotlar / Summa (UZS)</th>
+                  <th className="px-4 py-3 text-center min-w-[160px]">To'lov / Limit (UZS)</th>
                   <th className="px-4 py-3 text-center">To'lov</th>
-                  <th className="px-4 py-3 text-center">Filial</th>
-                  <th className="px-4 py-3 text-center">Hujjat</th>
-                  <th className="px-4 py-3 text-center">Holat</th>
+                  <th className="px-4 py-3 text-center min-w-[120px]">Filial</th>
+                  <th className="px-4 py-3 text-center">Grafik</th>
+                  <th className="px-6 py-3 text-center min-w-[160px]">Holat</th>
                   <th className="px-4 py-3 text-center">Muddati</th>
                   <th className="px-4 py-3 text-center">Yaratildi</th>
                 </>
@@ -443,7 +447,7 @@ const Applications = (): JSX.Element => {
                             URL.revokeObjectURL(url);
                           } catch (err) {
                             console.error(err);
-                            alert("Hujjatni yuklab olishda xatolik yuz berdi");
+                            alert("Grafikni yuklab olishda xatolik yuz berdi");
                           }
                         }}
                         className="inline-flex items-center gap-2 rounded border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm hover:bg-gray-100 dark:hover:bg-navy-700 dark:text-gray-300"
@@ -480,19 +484,51 @@ const Applications = (): JSX.Element => {
                         size="md"
                       />
                     </td>
-                    <td className="px-4 py-2 text-center">{formatPhone(a.phone)}</td>
-                    <td className="px-4 py-2 text-center">{a.products ? a.products.length : 0}</td>
-                    <td className="px-4 py-2 text-center">{formatMoney(a.amount)}</td>
-                    <td className="px-4 py-2 text-center font-semibold text-brand-500 dark:text-brand-400">{formatMoney(a.payment_amount || a.amount)}</td>
+                    <td className="px-4 py-2 text-center min-w-[130px] whitespace-nowrap">{formatPhone(a.phone)}</td>
+                    <td className="px-4 py-2 text-center min-w-[140px] whitespace-nowrap">
+                      {(a.products && a.products.length > 0) || a.amount ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium">{a.products && a.products.length > 0 ? `${a.products.length} dona` : "-"}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">{a.amount ? formatMoney(a.amount) : "-"}</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-center min-w-[160px] whitespace-nowrap">
+                      {(a.payment_amount || a.amount) && a.limit ? (
+                        <div className="flex flex-col gap-0">
+                          <span className="font-semibold text-brand-500 dark:text-brand-400">{formatMoney(a.payment_amount || a.amount)}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">{formatMoney(a.limit)}</span>
+                        </div>
+                      ) : (a.payment_amount || a.amount) ? (
+                        <span className="font-semibold text-brand-500 dark:text-brand-400">{formatMoney(a.payment_amount || a.amount)}</span>
+                      ) : a.limit ? (
+                        <span className="text-gray-700 dark:text-gray-300">{formatMoney(a.limit)}</span>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500">-</span>
+                      )}
+                    </td>
                     <td className="px-4 py-2 text-center">{a.paid ? <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-1 text-xs font-medium text-green-800 dark:text-green-300">To'landi</span> : <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs font-medium text-gray-800 dark:text-gray-300">To'lanmadi</span>}</td>
-                    <td className="px-4 py-2 text-center">{a.fillial?.name ?? "-"}</td>
+                    <td className="px-4 py-2 text-center min-w-[120px] whitespace-nowrap">{a.fillial?.name ?? "-"}</td>
                     <td className="px-4 py-2 text-center">
-                      {a.status === "APPROVED" ? (
+                      {isApproved(a.status) ? (
                         <button
                           onClick={async (e) => {
                             e.stopPropagation();
                             try {
-                              const blob = await (api as any).getApplicationDocument(a.id, "pdf");
+                              const response = await fetch(`https://api.premiumnasiya.uz/api/v1/app/graph/${a.id}`, {
+                                method: 'GET',
+                                headers: {
+                                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                }
+                              });
+                              
+                              if (!response.ok) {
+                                throw new Error('Document yuklab olishda xatolik');
+                              }
+                              
+                              const blob = await response.blob();
                               const url = URL.createObjectURL(blob);
                               const link = document.createElement("a");
                               link.href = url;
@@ -503,11 +539,12 @@ const Applications = (): JSX.Element => {
                               URL.revokeObjectURL(url);
                             } catch (err) {
                               console.error(err);
-                              alert("Hujjatni yuklab olishda xatolik yuz berdi");
+                              setToastMessage("Grafikni yuklab olishda xatolik yuz berdi");
+                              setToastOpen(true);
                             }
                           }}
-                          className="inline-flex items-center gap-2 rounded border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm hover:bg-gray-100 dark:hover:bg-navy-700 dark:text-gray-300"
-                          title="Hujjatni yuklab olish"
+                          className="inline-flex items-center justify-center rounded border border-gray-300 dark:border-gray-600 p-2 text-sm hover:bg-gray-100 dark:hover:bg-navy-700 dark:text-gray-300 whitespace-nowrap"
+                          title="Grafikni yuklab olish"
                           type="button"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-4 w-4">
@@ -515,13 +552,12 @@ const Applications = (): JSX.Element => {
                             <polyline points="7 10 12 15 17 10" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                             <line x1="12" y1="15" x2="12" y2="3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
-                          <span className="hidden sm:inline">Yuklab olish</span>
                         </button>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-2 text-center">{(() => { const b = appStatusBadge(a.status); return <span className={b.className}>{b.label}</span>; })()}</td>
+                    <td className="px-6 py-2 text-center min-w-[160px]">{(() => { const b = appStatusBadge(a.status, true); return <span className={b.className}>{b.label}</span>; })()}</td>
                     <td className="px-4 py-2 text-center">
                       {a.expired_month ? (
                         <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-1 text-xs font-medium text-blue-800 dark:text-blue-300">
@@ -609,7 +645,7 @@ const Applications = (): JSX.Element => {
             </DetailModal>
             {pageData.length === 0 && (
               <tr>
-                <td colSpan={statusFilter === "approved" ? 4 : 11} className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={statusFilter === "approved" ? 4 : 12} className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
                   Hech qanday natija topilmadi
                 </td>
               </tr>
@@ -622,6 +658,12 @@ const Applications = (): JSX.Element => {
         <div className="text-sm text-gray-600 dark:text-gray-400">{`${total} dan ${pageData.length} ta ko'rsatilmoqda`}</div>
         <Pagination page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} />
       </div>
+      
+      <Toast
+        message={toastMessage}
+        isOpen={toastOpen}
+        onClose={() => setToastOpen(false)}
+      />
     </div>
   );
 };

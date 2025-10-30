@@ -17,6 +17,19 @@ export function formatMoney(value?: number | string | null) {
   if (value === null || value === undefined || value === "") return "-";
   const n = typeof value === "number" ? value : Number(String(value).replace(/[^0-9.-]+/g, ""));
   if (Number.isNaN(n)) return "-";
+  // use ru-RU grouping to get space/period style; no UZS suffix
+  try {
+    const fmt = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(n);
+    return fmt;
+  } catch (e) {
+    return n.toLocaleString();
+  }
+}
+
+export function formatMoneyWithUZS(value?: number | string | null) {
+  if (value === null || value === undefined || value === "") return "-";
+  const n = typeof value === "number" ? value : Number(String(value).replace(/[^0-9.-]+/g, ""));
+  if (Number.isNaN(n)) return "-";
   // use ru-RU grouping to get space/period style; append UZS
   try {
     const fmt = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(n);
@@ -31,10 +44,10 @@ export function formatShortMoney(value?: number | string | null) {
   const n = typeof value === "number" ? value : Number(String(value).replace(/[^0-9.-]+/g, ""));
   if (Number.isNaN(n)) return "-";
   const abs = Math.abs(n);
-  if (abs >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B UZS`;
-  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M UZS`;
-  if (abs >= 1_000) return `${(n / 1_000).toFixed(2)}K UZS`;
-  return `${n} UZS`;
+  if (abs >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`;
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `${(n / 1_000).toFixed(2)}K`;
+  return `${n}`;
 }
 
 export function statusBadge(status?: string | null) {
@@ -64,26 +77,28 @@ export function isPending(status?: string | null): boolean {
   return !isApproved(status) && !isRejected(status) && !isLimit(status);
 }
 
-export function appStatusBadge(status?: string | null) {
+export function appStatusBadge(status?: string | null, fullWidth: boolean = false) {
   const s = (status ?? "").toUpperCase();
+  const widthClass = fullWidth ? "w-full" : "";
+  const flexClass = fullWidth ? "flex items-center justify-center" : "inline-flex items-center";
   
   // Tugatilgan - Approved/Completed statuses
   if (s === "CONFIRMED" || s === "FINISHED" || s === "COMPLETED" || s === "ACTIVE") {
-    return { label: "TUGATILGAN", className: "inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-1 text-xs font-medium text-green-800 dark:text-green-300" };
+    return { label: "TUGATILGAN", className: `${flexClass} rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-1 text-xs font-medium text-green-800 dark:text-green-300 ${widthClass}` };
   }
   
   // Rad qilingan - Rejected/Cancelled statuses
   if (s.includes("CANCELED") || s === "SCORING RAD ETDI" || s === "DAILY RAD ETDI" || s.includes("RAD") || s === "REJECTED" || s.includes("SCORING")) {
-    return { label: "RAD QILINGAN", className: "inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-1 text-xs font-medium text-red-800 dark:text-red-300" };
+    return { label: "RAD QILINGAN", className: `${flexClass} rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-1 text-xs font-medium text-red-800 dark:text-red-300 ${widthClass}` };
   }
   
   // Limit - Limit statuses
   if (s === "LIMIT" || s.includes("LIMIT")) {
-    return { label: "LIMIT", className: "inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-900/30 px-2 py-1 text-xs font-medium text-orange-800 dark:text-orange-300" };
+    return { label: "LIMIT", className: `${flexClass} rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-1 text-xs font-medium text-green-800 dark:text-green-300 ${widthClass}` };
   }
   
   // Kutilmoqda - All other statuses (pending, waiting, etc)
-  return { label: "KUTILMOQDA", className: "inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/30 px-2 py-1 text-xs font-medium text-yellow-800 dark:text-yellow-300" };
+  return { label: "KUTILMOQDA", className: `${flexClass} rounded-full bg-yellow-100 dark:bg-yellow-900/30 px-2 py-1 text-xs font-medium text-yellow-800 dark:text-yellow-300 ${widthClass}` };
 }
 
 export function formatDateNoSeconds(iso?: string | null) {
