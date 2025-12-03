@@ -1,7 +1,9 @@
 import React from "react";
 import DetailModal from "components/modal/DetailModalNew";
 import EditModal from "components/modal/EditModal";
-import api from "lib/api";
+import { useLocation } from "react-router-dom";
+import apiReal from "lib/api";
+import demoApi from "lib/demoApi";
 import { exportSingleTable } from "lib/exportExcel";
 import { formatPhone } from "lib/formatters";
 import Pagination from "components/pagination";
@@ -39,6 +41,23 @@ type Fillial = {
 
 
 const Fillials = (): JSX.Element => {
+  const location = useLocation();
+  
+  // Log every render
+  console.log('🔄 Fillials component rendering, pathname:', location.pathname);
+  
+  // Direct check - if URL contains /demo, use demoApi
+  const api = React.useMemo(() => {
+    const isDemoMode = window.location.pathname.includes('/demo');
+    console.log('🎯 Fillials selecting API:', {
+      url: window.location.pathname,
+      isDemoMode,
+      apiType: isDemoMode ? 'DEMO API' : 'REAL API'
+    });
+    const selectedApi = isDemoMode ? demoApi : apiReal;
+    console.log('✅ API selected:', selectedApi === demoApi ? 'demoApi' : 'apiReal');
+    return selectedApi;
+  }, [location.pathname]);
   const [data, setData] = React.useState<Fillial[]>([]);
   const [loading, setLoading] = React.useState(true);
   
@@ -94,11 +113,15 @@ const Fillials = (): JSX.Element => {
       // Create a promise that can be aborted
       const fetchData = async () => {
         try {
+          console.log('📡 Fillials calling api.listFillials...');
           // API dan barcha ma'lumotlarni olish (client-side filtering uchun)
-          const res = await api.listFillials({});
+          const res = await (api as any).listFillials({});
+          console.log('✅ Fillials data received:', res);
           if (!mounted || abortController.signal.aborted) return;
           
-          setData(res?.items || []);
+          // Handle both array and object with items
+          const fillialsList = Array.isArray(res) ? res : (res?.items || []);
+          setData(fillialsList);
           setLoading(false);
         } catch (err: any) {
           if (!mounted || abortController.signal.aborted) return;
@@ -117,8 +140,7 @@ const Fillials = (): JSX.Element => {
       abortController.abort();
       clearTimeout(timeoutId);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  // Faqat component mount bo'lganda API chaqirish (client-side filtering)
+  }, [api]); // Re-fetch when api changes (demo vs real)
 
   // Client-side filtering va pagination
   const filteredData = React.useMemo(() => {
@@ -192,9 +214,14 @@ const Fillials = (): JSX.Element => {
         {/* Buttons and filters row */}
         <div className="flex flex-wrap gap-2">
           <button onClick={() => { 
-            setToastType("error");
-            setToastMessage("Vaqtincha bu funksiya ishlamayapti");
-            setToastOpen(true);
+            if (location.pathname.startsWith('/demo')) {
+              setEditInitial(null);
+              setEditOpen(true);
+            } else {
+              setToastType("error");
+              setToastMessage("Vaqtincha bu funksiya ishlamayapti");
+              setToastOpen(true);
+            }
           }} className="h-11 rounded-xl bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 px-4 text-white font-medium shadow-sm hover:shadow-md transition-all duration-200 text-sm whitespace-nowrap">
             <span className="hidden sm:inline">Filial qo'shish</span>
             <span className="sm:hidden">+ Filial</span>
@@ -479,9 +506,15 @@ const Fillials = (): JSX.Element => {
                         Barcha ma'lumotlarni ko'chirish
                       </button>
                       <button className="rounded bg-blue-600 hover:bg-blue-700 px-3 py-1 text-white" onClick={() => { 
-                        setToastType("error");
-                        setToastMessage("Vaqtincha bu funksiya ishlamayapti");
-                        setToastOpen(true);
+                        if (location.pathname.startsWith('/demo')) {
+                          setEditInitial(selected);
+                          setEditOpen(true);
+                          setOpen(false);
+                        } else {
+                          setToastType("error");
+                          setToastMessage("Vaqtincha bu funksiya ishlamayapti");
+                          setToastOpen(true);
+                        }
                       }}>Tahrirlash</button>
                     </div>
                   </div>
@@ -497,6 +530,15 @@ const Fillials = (): JSX.Element => {
               initial={editInitial}
               type="fillial"
               onSave={async (payload) => {
+                if (location.pathname.startsWith('/demo')) {
+                  // Demo mode: simulate save
+                  setEditOpen(false);
+                  setEditInitial(null);
+                  setToastType('success');
+                  setToastMessage(editInitial ? 'Filial tahrirlandi (Demo)' : 'Filial qo\'shildi (Demo)');
+                  setToastOpen(true);
+                  return;
+                }
                 if (editInitial && editInitial.id) {
                   await api.updateFillial(editInitial.id, payload);
                 } else {

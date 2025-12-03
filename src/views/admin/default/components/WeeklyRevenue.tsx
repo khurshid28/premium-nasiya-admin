@@ -4,7 +4,9 @@ import BarChart from "components/charts/BarChart";
 import {
   barChartOptionsWeeklyRevenue,
 } from "variables/charts";
-import api from "lib/api";
+import { useLocation } from "react-router-dom";
+import apiReal from "lib/api";
+import demoApi from "lib/demoApi";
 import { MdBarChart } from "react-icons/md";
 import { isApproved, isRejected, isLimit } from "lib/formatters";
 
@@ -43,6 +45,12 @@ const WeeklyRevenue: React.FC<WeeklyRevenueProps> = ({
   fillials = [],
   expiredMonth = "all"
 }) => {
+  const location = useLocation();
+  const api = React.useMemo(() => {
+    const isDemo = location.pathname.startsWith('/demo');
+    return isDemo ? demoApi : apiReal;
+  }, [location.pathname]);
+  
   const [chartData, setChartData] = React.useState([{
     name: "Tugatilgan",
     data: [0, 0, 0, 0, 0, 0, 0],
@@ -175,7 +183,7 @@ const WeeklyRevenue: React.FC<WeeklyRevenueProps> = ({
     };
 
     loadWeeklyData();
-  }, [startDate, endDate, fillialId, region, search, fillials, expiredMonth]);
+  }, [api, startDate, endDate, fillialId, region, search, fillials, expiredMonth]);
 
   return (
     <Card extra="flex flex-col bg-white w-full rounded-3xl py-6 px-2 text-center">

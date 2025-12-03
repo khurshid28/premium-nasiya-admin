@@ -1,6 +1,8 @@
 import React from "react";
 import DetailModal from "./DetailModalNew";
-import api from "lib/api";
+import { useLocation } from "react-router-dom";
+import apiReal from "lib/api";
+import demoApi from "lib/demoApi";
 import PhoneInput from "components/PhoneInput";
 import CustomSelect from "components/dropdown/CustomSelect";
 import CustomFileInput from "components/input/CustomFileInput";
@@ -31,8 +33,16 @@ const REGIONS = [
 ];
 
 export default function EditModal({ isOpen, onClose, onSave, initial, type }: Props) {
+  const location = useLocation();
   const [form, setForm] = React.useState<any>(initial ?? {});
   const [fillials, setFillials] = React.useState<any[]>([]);
+  
+  // Select API based on route
+  const api = React.useMemo(() => {
+    const isDemoMode = window.location.pathname.includes('/demo');
+    return isDemoMode ? demoApi : apiReal;
+  }, [location.pathname]);
+  
   // focus flags removed — we keep input simple with separate prefix
 
   React.useEffect(() => {
@@ -57,7 +67,7 @@ export default function EditModal({ isOpen, onClose, onSave, initial, type }: Pr
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [api]);
 
   const update = (key: string, value: any) => setForm((s: any) => ({ ...s, [key]: value }));
 

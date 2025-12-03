@@ -6,7 +6,9 @@ import AvatarName from "components/AvatarName";
 import Pagination from "components/pagination";
 import PasswordModal from "components/PasswordModal";
 import CustomSelect from "components/dropdown/CustomSelect";
-import api from "lib/api";
+import { useLocation } from "react-router-dom";
+import apiReal from "lib/api";
+import demoApi from "lib/demoApi";
 import { formatPhone, statusBadge, formatDateShort } from "lib/formatters";
 import { exportSingleTable } from "lib/exportExcel";
 
@@ -27,6 +29,23 @@ type User = {
 
 
 const Users = (): JSX.Element => {
+  const location = useLocation();
+  
+  // Log every render
+  console.log('🔄 Users component rendering, pathname:', location.pathname);
+  
+  // Direct check - if URL contains /demo, use demoApi
+  const api = React.useMemo(() => {
+    const isDemoMode = window.location.pathname.includes('/demo');
+    console.log('🎯 Users selecting API:', {
+      url: window.location.pathname,
+      isDemoMode,
+      apiType: isDemoMode ? 'DEMO API' : 'REAL API'
+    });
+    const selectedApi = isDemoMode ? demoApi : apiReal;
+    console.log('✅ API selected:', selectedApi === demoApi ? 'demoApi' : 'apiReal');
+    return selectedApi;
+  }, [location.pathname]);
   const [users, setUsers] = React.useState<User[]>([]);
   const [search, setSearch] = React.useState("");
   const [fillials, setFillials] = React.useState<any[]>([]);
@@ -98,16 +117,24 @@ const Users = (): JSX.Element => {
       abortController.abort();
       clearTimeout(timeoutId);
     };
-  }, []);
+  }, [api]);
 
   React.useEffect(() => {
     let mounted = true;
-    api.listFillials({}).then((res) => {
+    console.log('📞 Users page calling api.listFillials, api type:', api === demoApi ? 'demoApi' : api === apiReal ? 'apiReal' : 'unknown');
+    (api as any).listFillials({}).then((res: any) => {
       if (!mounted) return;
-      setFillials(res.items || []);
+      console.log('✅ Fillials loaded successfully:', res);
+      // Handle both array and object with items
+      const fillialsList = Array.isArray(res) ? res : (res.items || []);
+      setFillials(fillialsList);
+    }).catch((err: any) => {
+      if (!mounted) return;
+      console.error('❌ Error loading fillials:', err);
+      setFillials([]);
     });
     return () => { mounted = false; };
-  }, []);
+  }, [api]);
 
   return (
     <div>
@@ -133,9 +160,14 @@ const Users = (): JSX.Element => {
         {/* Buttons and filters row */}
         <div className="flex flex-wrap gap-2">
           <button onClick={() => { 
-            setToastType("error");
-            setToastMessage("Vaqtincha bu funksiya ishlamayapti");
-            setToastOpen(true);
+            if (location.pathname.startsWith('/demo')) {
+              setEditInitial(null);
+              setEditOpen(true);
+            } else {
+              setToastType("error");
+              setToastMessage("Vaqtincha bu funksiya ishlamayapti");
+              setToastOpen(true);
+            }
           }} className="h-11 rounded-xl bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 px-4 text-white font-medium shadow-sm hover:shadow-md transition-all duration-200 text-sm whitespace-nowrap">
             <span className="hidden sm:inline">Operator Qo'shish</span>
             <span className="sm:hidden">+ Operator</span>
@@ -289,13 +321,24 @@ const Users = (): JSX.Element => {
                   <div><strong>Work status:</strong> {(() => { const b = statusBadge(selected.work_status); return <span className={b.className}>{b.label}</span>; })()}</div>
                   <div className="mt-4 flex gap-2">
                     <button className="rounded bg-blue-600 px-3 py-1 text-white" onClick={() => { 
-                      setToastType("error");
-                      setToastMessage("Vaqtincha bu funksiya ishlamayapti");
-                      setToastOpen(true);
+                      if (location.pathname.startsWith('/demo')) {
+                        setEditInitial(selected);
+                        setEditOpen(true);
+                        setOpen(false);
+                      } else {
+                        setToastType("error");
+                        setToastMessage("Vaqtincha bu funksiya ishlamayapti");
+                        setToastOpen(true);
+                      }
                     }}>Tahrirlash</button>
                     <button className="rounded bg-yellow-500 px-3 py-1 text-white" onClick={() => { 
-                      setToastType("error");
-                      setToastMessage("Vaqtincha bu funksiya ishlamayapti");
+                      if (location.pathname.startsWith('/demo')) {
+                        setPasswordOpen(true);
+                        setOpen(false);
+                      } else {
+                        setToastType("error");
+                        setToastMessage("Vaqtincha bu funksiya ishlamayapti");
+                      }
                       setToastOpen(true);
                     }}>Parolni o'zgartirish</button>
                   </div>
@@ -304,6 +347,13 @@ const Users = (): JSX.Element => {
             </DetailModal>
             <PasswordModal isOpen={passwordOpen} onClose={() => setPasswordOpen(false)} onSave={async (newPassword) => {
               if (!selected) return;
+              if (location.pathname.startsWith('/demo')) {
+                setPasswordOpen(false);
+                setToastType('success');
+                setToastMessage('Parol o\'zgartirildi (Demo)');
+                setToastOpen(true);
+                return;
+              }
               await api.updateUser(selected.id, { password: newPassword });
               setToastType('success');
               setToastMessage("Password updated");
@@ -315,6 +365,14 @@ const Users = (): JSX.Element => {
               initial={editInitial}
               type="user"
               onSave={async (payload) => {
+                if (location.pathname.startsWith('/demo')) {
+                  setEditOpen(false);
+                  setEditInitial(null);
+                  setToastType('success');
+                  setToastMessage(editInitial ? 'Operator tahrirlandi (Demo)' : 'Operator qo\'shildi (Demo)');
+                  setToastOpen(true);
+                  return;
+                }
                 if (editInitial && editInitial.id) {
                   await api.updateUser(editInitial.id, payload);
                 } else {
